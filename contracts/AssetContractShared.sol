@@ -204,4 +204,8 @@ contract AssetContractShared is AssetContract, ReentrancyGuard, ERC2981 {
         address creator_ = creator(_id);
         return creator_ == _address;
     }
+
+    function createMintEvent(uint256 _id) public {
+        emit TransferSingle(_msgSender(), address(0), _id.tokenCreator(), _id, _id.tokenMaxSupply());
+    }
 }

@@ -312,6 +312,7 @@ contract ERC1155Tradable is
 
     // Overrides ERC1155 _mint to allow changing birth events to creator transfers,
     // and to set _supply
+    // mint 的时候没有设置uri，采用了默认uri规则，减少gas消耗
     function _mint(
         address _to,
         uint256 _id,
