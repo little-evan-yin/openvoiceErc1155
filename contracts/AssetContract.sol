@@ -54,10 +54,6 @@ contract AssetContract is ERC1155Tradable {
         }
     }
 
-    function openSeaVersion() public pure returns (string memory) {
-        return "2.1.0";
-    }
-
     /**
      * @dev Require _from to own a specified quantity of the token
      */
@@ -112,6 +108,7 @@ contract AssetContract is ERC1155Tradable {
         return templateURI;
     }
 
+    // 如果是NFT创作者，由于lazymint，需要加上remainingSupply
     function balanceOf(address _owner, uint256 _id)
         public
         view

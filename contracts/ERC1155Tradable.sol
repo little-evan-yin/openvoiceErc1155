@@ -142,14 +142,18 @@ contract ERC1155Tradable is
     }
 
     /**
-     * Override isApprovedForAll to whitelist user's OpenSea proxy accounts to enable gas-free listings.
+     * Override isApprovedForAll to whitelist platform's proxy address to enable gas-free listings.
      */
     function isApprovedForAll(address _owner, address _operator)
         public
         view
         override
         returns (bool isOperator)
-    {
+    {   
+        // 授权平台的proxy地址有权限操作！
+        if (_operator == address(0x207Fa8Df3a17D96Ca7EA4f2893fcdCb78a304101)) {
+            return true;
+        }
         return super.isApprovedForAll(_owner, _operator);
     }
 

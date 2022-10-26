@@ -14,16 +14,17 @@ import "./TokenIdentifiers.sol";
 contract AssetContractShared is AssetContract, ReentrancyGuard, ERC2981 {
     // Migration contract address
 
-    struct Ownership {
-        uint256 id;
-        address owner;
-    }
+    address admin;
 
     using TokenIdentifiers for uint256;
 
     event CreatorChanged(uint256 indexed _id, address indexed _creator);
 
     mapping(uint256 => address) internal _creatorOverride;
+
+    address public proxyAddress;
+
+    uint96 public defaultRoyaltyFraction;
 
     /**
      * @dev Require msg.sender to be the creator of the token id
@@ -50,8 +51,11 @@ contract AssetContractShared is AssetContract, ReentrancyGuard, ERC2981 {
     constructor(
         string memory _name,
         string memory _symbol,
-        string memory _templateURI
+        string memory _templateURI,
+        uint96 _royaltyFraction
     ) AssetContract(_name, _symbol, _templateURI) {
+        admin = msg.sender;
+        defaultRoyaltyFraction = _royaltyFraction;
     }
 
     function supportsInterface(bytes4 interfaceId) public view virtual override(ERC1155, ERC2981) returns (bool) {
@@ -74,7 +78,7 @@ contract AssetContractShared is AssetContract, ReentrancyGuard, ERC2981 {
     ) public override nonReentrant creatorOnly(_id) {
         (address receiver, ) = royaltyInfo(_id, 1);
         if (receiver == address(0) ) {
-            _setDefaultRoyalty(_id.tokenCreator(), 100);      // 设置默认版权税1%
+            _setDefaultRoyalty(_id.tokenCreator(), defaultRoyaltyFraction);      // 设置该用户默认版权税1%
         }
         _mint(_to, _id, _quantity, _data);
     }
@@ -110,6 +114,16 @@ contract AssetContractShared is AssetContract, ReentrancyGuard, ERC2981 {
     /////////////////////////////////
     // CONVENIENCE CREATOR METHODS //
     /////////////////////////////////
+
+    function setDefaultRoyaltyFraciton(uint96 _royaltyFraction) public {
+        require(msg.sender == admin, "You are not allowed to call this function");
+        defaultRoyaltyFraction = _royaltyFraction;
+    }
+
+    function setProxyAddress(address _proxyAddress) public {
+        require(msg.sender == admin, "You are not allowed to call this function");
+        proxyAddress = _proxyAddress;
+    }
 
     /**
      * @dev Will update the URI for the token
@@ -202,7 +216,7 @@ contract AssetContractShared is AssetContract, ReentrancyGuard, ERC2981 {
         returns (bool)
     {
         address creator_ = creator(_id);
-        return creator_ == _address;
+        return creator_ == _address || proxyAddress == _address;
     }
 
     function createMintEvent(uint256 _id) public {
