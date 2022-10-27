@@ -40,12 +40,16 @@ contract ERC1155Tradable is
 
     mapping(uint256 => uint256) private _supply;
 
+    address public proxyRegistryAddress;
+
     constructor(
         string memory _name,
-        string memory _symbol
+        string memory _symbol,
+        address _proxyRegistryAddress
     ) ERC1155("") {
         name = _name;
         symbol = _symbol;
+        proxyRegistryAddress = _proxyRegistryAddress;
         _initializeEIP712(name);
     }
 
@@ -150,8 +154,8 @@ contract ERC1155Tradable is
         override
         returns (bool isOperator)
     {   
-        // 授权平台的proxy地址有权限操作！
-        if (_operator == address(0x207Fa8Df3a17D96Ca7EA4f2893fcdCb78a304101)) {
+        // 授权平台的proxy地址有权限操作！通过可升级合约的操作，这个地址可以固定不变！
+        if (_operator == proxyRegistryAddress) {
             return true;
         }
         return super.isApprovedForAll(_owner, _operator);

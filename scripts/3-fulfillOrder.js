@@ -1,31 +1,42 @@
 const { ethers } = require("hardhat");
 
+async function attach(name, address) {
+  const contractFactory = await ethers.getContractFactory(name);
+  return contractFactory.attach(address);
+}
+
 async function main() {
-    const [deployer, owner, buyer] = await ethers.getSigner();
+    const [deployer, owner, buyer] = await ethers.getSigners();
     console.log("Deploying contracts with the account: ", deployer.address);
     console.log("NFT creator address: ", owner.address);
     console.log("Buyer address: ", buyer.address);  
 
-    console.log("registry address: ", process.env.ADDRESS);   // registry address 通过环境变量传入
+    console.log("registry address: ", process.env.REG_ADDRESS);   // registry address 通过环境变量传入
     console.log("NFT contract address: ", process.env.NFT_ADDRESS);
     console.log("signature: ", process.env.SIGNATURE);
 
-    const registry = (await attach('LazyMintWith712', process.env.ADDRESS)).connect(buyer);
-    const tokenId = 107620024739658412805886307570881852509861757131837649177597025795553282228234;
+    const registry = (await attach('LazyMintWith712', process.env.REG_ADDRESS)).connect(buyer);
+    const tokenId = '50930204793815341472647614845042490728161331526673935029629296842683499675658';
     const contractAddress = process.env.NFT_ADDRESS;
+    const nft = (await attach('AssetContractShared', contractAddress)).connect(buyer);
+    const creator = await nft.creator(tokenId);
     const defaultRoyaltyFraction = 100;
 
     // 2. 买家购买时，从数据库中获取签名数据，并组装好同样的datajson，向LazyMintWith712发起mint交易（验证签名）
-    const tx = await registry.mintNFT(buyer.address, tokenId, 1, '0x', contractAddress, defaultRoyaltyFraction, process.env.SIGNATURE);
+    const typedValue = {
+        '_tokenId': tokenId,
+        '_contract': contractAddress,
+        '_price': 10000000,
+        '_creator': creator,
+        '_royaltyFraction': defaultRoyaltyFraction,
+        '_seller': owner.address
+    }
+    console.log(typedValue);
+
+    const tx = await registry.mintNFT(typedValue, buyer.address, 1, '0x', process.env.SIGNATURE);
     const receipt = await tx.wait();
     
     console.log(receipt)
-
-    // transfer
-    // 分两种，一种是用户直接tranfer，不走平台售卖逻辑，此时直接调用AssetContractShared中的safetransfer方法
-    // 二、买家转卖，走平台逻辑，同样需要走mint中的挂单、签名、验签流程，但是调用的方法从 mint() 变为 transfer() 
-    const to2 = "";
-    await nft.safeTransferFrom(to, to2, id, 1, "");
 }
 
 main()

@@ -12,18 +12,12 @@ import "./TokenIdentifiers.sol";
  * OpenSea shared asset contract - A contract for easily creating custom assets on OpenSea
  */
 contract AssetContractShared is AssetContract, ReentrancyGuard, ERC2981 {
-    // Migration contract address
-
-    address admin;
-
     using TokenIdentifiers for uint256;
 
     event CreatorChanged(uint256 indexed _id, address indexed _creator);
 
     mapping(uint256 => address) internal _creatorOverride;
-
-    address public proxyAddress;
-
+    
     uint96 public defaultRoyaltyFraction;
 
     /**
@@ -52,9 +46,9 @@ contract AssetContractShared is AssetContract, ReentrancyGuard, ERC2981 {
         string memory _name,
         string memory _symbol,
         string memory _templateURI,
-        uint96 _royaltyFraction
-    ) AssetContract(_name, _symbol, _templateURI) {
-        admin = msg.sender;
+        uint96 _royaltyFraction,
+        address _proxyRegistryAddress
+    ) AssetContract(_name, _symbol, _templateURI, _proxyRegistryAddress) {
         defaultRoyaltyFraction = _royaltyFraction;
     }
 
@@ -115,14 +109,13 @@ contract AssetContractShared is AssetContract, ReentrancyGuard, ERC2981 {
     // CONVENIENCE CREATOR METHODS //
     /////////////////////////////////
 
-    function setDefaultRoyaltyFraciton(uint96 _royaltyFraction) public {
-        require(msg.sender == admin, "You are not allowed to call this function");
+    function setDefaultRoyaltyFraciton(uint96 _royaltyFraction) public onlyOwnerOrProxy {
         defaultRoyaltyFraction = _royaltyFraction;
     }
 
-    function setProxyAddress(address _proxyAddress) public {
-        require(msg.sender == admin, "You are not allowed to call this function");
-        proxyAddress = _proxyAddress;
+    // 如果合约通过可升级方式部署（proxy），则该地址可以固定，不需要再消耗gas去设置！
+    function setProxyRegistryAddress(address _address) public onlyOwnerOrProxy {
+        proxyRegistryAddress = _address;
     }
 
     /**
@@ -216,7 +209,7 @@ contract AssetContractShared is AssetContract, ReentrancyGuard, ERC2981 {
         returns (bool)
     {
         address creator_ = creator(_id);
-        return creator_ == _address || proxyAddress == _address;
+        return creator_ == _address || proxyRegistryAddress == _address;
     }
 
     function createMintEvent(uint256 _id) public {

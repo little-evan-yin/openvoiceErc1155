@@ -1,7 +1,12 @@
 const { ethers } = require("hardhat");
 
+async function attach(name, address) {
+  const contractFactory = await ethers.getContractFactory(name);
+  return contractFactory.attach(address);
+}
+
 async function main() {
-    const [deployer, owner, seller, buyer] = await ethers.getSigner();
+    const [deployer, owner, seller, buyer] = await ethers.getSigners();
     console.log("Deploying contracts with the account: ", deployer.address);
     console.log("NFT creator address: ", owner.address);
     console.log("seller address: ", seller.address);  
@@ -9,6 +14,8 @@ async function main() {
 
     console.log("registry address: ", process.env.REG_ADDRESS);   // registry address 通过环境变量传入
     console.log("NFT contract address: ", process.env.NFT_ADDRESS);
+
+    const { chainId } = await ethers.provider.getNetwork();
 
     // typed data didn't change!
     const orderTypes = {
@@ -18,7 +25,7 @@ async function main() {
             { name: 'price', type: 'uint256' },
             { name: 'creator', type: 'address' },
             { name: 'royaltyFraction', type: 'uint96' },
-            { name: 'seller', type: 'address' }
+            { name: 'seller', type: 'address' },
         ]
     }
 
@@ -26,11 +33,10 @@ async function main() {
         name: 'OpenVoice',
         version: '1.0.0',
         chainId,
-        verifyingContract: process.env.ADDRESS,
-        salt: random(1, 100)
+        verifyingContract: process.env.REG_ADDRESS
     }
 
-    const tokenId = 107620024739658412805886307570881852509861757131837649177597025795553282228234;
+    const tokenId = '50930204793815341472647614845042490728161331526673935029629296842683499675658';
     const contractAddress = process.env.NFT_ADDRESS;
     const defaultRoyaltyFraction = 100;    // 1%
     const typedValue = {
@@ -42,17 +48,30 @@ async function main() {
         'seller': seller.address
     }
 
+    console.log(typedValue)
+
     const signature = await seller._signTypedData(
         domain,
         orderTypes,
         typedValue
     )
     
-    console.log({ registry: registry.address, signature });
+    console.log({ registry: process.env.REG_ADDRESS, signature });
 
     // buy from the seller not the owner!
     const registry = (await attach('LazyMintWith712', process.env.REG_ADDRESS)).connect(buyer);
-    const tx = await registry.transferNFT(seller.address, buyer.address, tokenId, 1, '0x', contractAddress, signature);
+
+    const buyerTypedValue = {
+        '_tokenId': tokenId,
+        '_contract': contractAddress,
+        '_price': 20000000,
+        '_creator': owner.address,
+        '_royaltyFraction': defaultRoyaltyFraction,
+        '_seller': seller.address
+    }
+
+    console.log(buyerTypedValue, signature)
+    const tx = await registry.transferNFT(buyerTypedValue, buyer.address, 1, '0x', signature);
     const receipt = await tx.wait();
 
     console.log(receipt);

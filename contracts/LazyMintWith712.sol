@@ -29,8 +29,6 @@ interface IAssetContractShared {
         bytes memory _data
     ) external;
 
-    function creator(uint256 _id) view external returns (address);
-
     function royaltyInfo(uint256 _tokenId, uint256 _salePrice) view external returns (address, uint256);
 
     function defaultRoyaltyFraction() view external returns (uint96);
@@ -78,66 +76,40 @@ contract LazyMintWith712 is EIP712, AccessControl {
 
     // lazymint
     function mintNFT(
+        VerifyInfo memory vinfo,
         address _to,
-        uint256 _id,
         uint256 _quantity,
         bytes memory _data,
-        address _contract,
-        uint96 _feeNumerator,
         bytes calldata _signature
-    ) payable external {
-        // price for each item
-        uint256 perPrice = msg.value / _quantity;
-        address _creator = nftContract.creator(_id);
-        VerifyInfo memory vinfo;
-        vinfo._tokenId = _id;
-        vinfo._contract = _contract;
-        vinfo._price = perPrice;
-        vinfo._creator = _creator;
-        vinfo._royaltyFraction = _feeNumerator;
-        vinfo._seller = _creator;
+    ) payable public {
         bytes32 digest = _hash(vinfo);
-        require(_verify(digest, _signature, _creator), "Invalid signature");
+        require(ECDSA.recover(digest, _signature) == vinfo._creator, "Invalid signature");
 
-        if (_feeNumerator == nftContract.defaultRoyaltyFraction()) {
-            nftContract.mint(_to, _id, _quantity, _data);
+        if (vinfo._royaltyFraction == nftContract.defaultRoyaltyFraction()) {
+            nftContract.mint(_to, vinfo._tokenId, _quantity, _data);
         } else {
-            nftContract.mintWithRoyalty(_to, _id, _quantity, _data, _feeNumerator);
+            nftContract.mintWithRoyalty(_to, vinfo._tokenId, _quantity, _data, vinfo._royaltyFraction);
         }
          // pay for each other
         uint256 royaltyAmount = 0;
-        tokenTransfer(_creator, msg.value, royaltyAmount, address(0));
+        tokenTransfer(vinfo._creator, msg.value, royaltyAmount, address(0));
     }
 
     // safetransfer
     function transferNFT(
-        address _from,
+        VerifyInfo memory vinfo,
         address _to,
-        uint256 _id,
         uint256 _amount,
-        bytes memory _data,  
-        address _contract,
-        bytes calldata _signature     
-    ) payable external {
-        // price for each item
-        uint256 perPrice = msg.value / _amount;
-        address _creator = nftContract.creator(_id);
-        (address royaltyReceiver, uint256 _royaltyFraction) = nftContract.royaltyInfo(_id, 10000);
-        uint96 royaltyFraction = uint96(_royaltyFraction);
-        VerifyInfo memory vinfo;
-        vinfo._tokenId = _id;
-        vinfo._contract = _contract;
-        vinfo._price = perPrice;
-        vinfo._creator = _creator;
-        vinfo._royaltyFraction = royaltyFraction;
-        vinfo._seller = _from;
+        bytes memory _data,
+        bytes calldata _signature   
+    ) payable public {
         bytes32 digest = _hash(vinfo);
-        require(_verify(digest, _signature, _from), "Invalid signature");
+        require(ECDSA.recover(digest, _signature) == vinfo._seller, "Invalid signature");
 
-        nftContract.safeTransferFrom(_from, _to, _id, _amount, _data);
+        nftContract.safeTransferFrom(vinfo._seller, _to, vinfo._tokenId, _amount, _data);
         // pay for each other
-        (, uint256 royaltyAmount) = nftContract.royaltyInfo(_id, msg.value);
-        tokenTransfer(_from, msg.value, royaltyAmount, royaltyReceiver);
+        (, uint256 royaltyAmount) = nftContract.royaltyInfo(vinfo._tokenId, msg.value);
+        tokenTransfer(vinfo._seller, msg.value, royaltyAmount, vinfo._creator);
     }
 
     function _hash(VerifyInfo memory vinfo) internal view returns (bytes32) {
@@ -150,9 +122,5 @@ contract LazyMintWith712 is EIP712, AccessControl {
             vinfo._royaltyFraction,
             vinfo._seller
         )));
-    }
-
-    function _verify(bytes32 digest, bytes memory signature, address publicAddress) internal view returns (bool) {
-        return (publicAddress == ECDSA.recover(digest, signature));
     }
 }

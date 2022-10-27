@@ -1,7 +1,7 @@
 const { ethers } = require("hardhat");
 
 async function main() {
-    const [deployer, owner, buyer] = await ethers.getSigner();
+    const [deployer, owner, buyer] = await ethers.getSigners();
     console.log("Deploying contracts with the account: ", deployer.address);
     console.log("NFT creator address: ", owner.address);
     console.log("Buyer address: ", buyer.address);  
@@ -9,6 +9,7 @@ async function main() {
     console.log("registry address: ", process.env.REG_ADDRESS);   // registry address 通过环境变量传入
     console.log("NFT contract address: ", process.env.NFT_ADDRESS);
 
+    const { chainId } = await ethers.provider.getNetwork();
 
     // mint
     // get signature first!
@@ -21,7 +22,7 @@ async function main() {
             { name: 'price', type: 'uint256' },
             { name: 'creator', type: 'address' },
             { name: 'royaltyFraction', type: 'uint96' },
-            { name: 'seller', type: 'address' }
+            { name: 'seller', type: 'address' },
         ]
     }
 
@@ -29,11 +30,10 @@ async function main() {
         name: 'OpenVoice',
         version: '1.0.0',
         chainId,
-        verifyingContract: process.env.ADDRESS,
-        salt: random(1, 100)
+        verifyingContract: process.env.REG_ADDRESS
     }
 
-    const tokenId = 107620024739658412805886307570881852509861757131837649177597025795553282228234;
+    const tokenId = '50930204793815341472647614845042490728161331526673935029629296842683499675658';
     const contractAddress = process.env.NFT_ADDRESS;
     const defaultRoyaltyFraction = 100;    // 1%
     const typedValue = {
@@ -51,7 +51,7 @@ async function main() {
         typedValue
     )
     
-    console.log({ registry: registry.address, signature });
+    console.log({ registry: process.env.REG_ADDRESS, signature });
 }
 
 main()

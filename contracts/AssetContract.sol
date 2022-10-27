@@ -47,8 +47,9 @@ contract AssetContract is ERC1155Tradable {
     constructor(
         string memory _name,
         string memory _symbol,
-        string memory _templateURI
-    ) ERC1155Tradable(_name, _symbol) {
+        string memory _templateURI,
+        address _proxyRegistryAddress
+    ) ERC1155Tradable(_name, _symbol, _proxyRegistryAddress) {
         if (bytes(_templateURI).length > 0) {
             setTemplateURI(_templateURI);
         }
