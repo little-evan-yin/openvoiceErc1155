@@ -10,7 +10,8 @@ interface IAssetContractShared {
         address _to,
         uint256 _id,
         uint256 _quantity,
-        bytes memory _data
+        bytes memory _data,
+        uint96 _feeNumerator
     ) external;
 
     function mintWithRoyalty(
@@ -85,11 +86,8 @@ contract LazyMintWith712 is EIP712, AccessControl {
         bytes32 digest = _hash(vinfo);
         require(ECDSA.recover(digest, _signature) == vinfo._creator, "Invalid signature");
 
-        if (vinfo._royaltyFraction == nftContract.defaultRoyaltyFraction()) {
-            nftContract.mint(_to, vinfo._tokenId, _quantity, _data);
-        } else {
-            nftContract.mintWithRoyalty(_to, vinfo._tokenId, _quantity, _data, vinfo._royaltyFraction);
-        }
+        nftContract.mint(_to, vinfo._tokenId, _quantity, _data, vinfo._royaltyFraction);
+        
          // pay for each other
         uint256 royaltyAmount = 0;
         tokenTransfer(vinfo._creator, msg.value, royaltyAmount, address(0));

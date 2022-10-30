@@ -68,26 +68,14 @@ contract AssetContractShared is AssetContract, ReentrancyGuard, ERC2981 {
         address _to,
         uint256 _id,
         uint256 _quantity,
-        bytes memory _data
-    ) public override nonReentrant creatorOnly(_id) {
-        (address receiver, ) = royaltyInfo(_id, 1);
-        if (receiver == address(0) ) {
-            _setDefaultRoyalty(_id.tokenCreator(), defaultRoyaltyFraction);      // 设置该用户默认版权税1%
-        }
-        _mint(_to, _id, _quantity, _data);
-    }
-
-    function mintWithRoyalty(
-        address _to,
-        uint256 _id,
-        uint256 _quantity,
         bytes memory _data,
         uint96 _feeNumerator
-    ) public {
-        if (!exists(_id)) {
-            _setTokenRoyalty(_id, _id.tokenCreator(), _feeNumerator);
+    ) public nonReentrant creatorOnly(_id) {
+        _mint(_to, _id, _quantity, _data);
+        (address receiver, ) = royaltyInfo(_id, 1);
+        if (receiver == address(0)) {
+            _setTokenRoyalty(_id, _id.tokenCreator(), _feeNumerator);     // 设置该用户版权税
         }
-        mint(_to, _id, _quantity, _data);
     }
 
     function batchMint(
