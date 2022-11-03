@@ -37,34 +37,6 @@
           "internalType": "bytes",
           "name": "_data",
           "type": "bytes"
-        }
-      ],
-      "name": "mint",
-      "outputs": [],
-      "stateMutability": "nonpayable",
-      "type": "function"
-    },
-    {
-      "inputs": [
-        {
-          "internalType": "address",
-          "name": "_to",
-          "type": "address"
-        },
-        {
-          "internalType": "uint256",
-          "name": "_id",
-          "type": "uint256"
-        },
-        {
-          "internalType": "uint256",
-          "name": "_quantity",
-          "type": "uint256"
-        },
-        {
-          "internalType": "bytes",
-          "name": "_data",
-          "type": "bytes"
         },
         {
           "internalType": "uint96",
@@ -72,7 +44,7 @@
           "type": "uint96"
         }
       ],
-      "name": "mintWithRoyalty",
+      "name": "mint",
       "outputs": [],
       "stateMutability": "nonpayable",
       "type": "function"

@@ -4,45 +4,8 @@ pragma solidity >=0.7.0 <0.9.0;
 import "@openzeppelin/contracts/access/AccessControl.sol";
 import "@openzeppelin/contracts/utils/cryptography/draft-EIP712.sol";
 import "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
+import "./IAssetContractShared.sol";
 
-interface IAssetContractShared {
-    function mint(
-        address _to,
-        uint256 _id,
-        uint256 _quantity,
-        bytes memory _data,
-        uint96 _feeNumerator
-    ) external;
-
-    function mintWithRoyalty(
-        address _to,
-        uint256 _id,
-        uint256 _quantity,
-        bytes memory _data,
-        uint96 _feeNumerator
-    ) external;
-
-    function safeTransferFrom(
-        address _from,
-        address _to,
-        uint256 _id,
-        uint256 _amount,
-        bytes memory _data
-    ) external;
-
-    function royaltyInfo(uint256 _tokenId, uint256 _salePrice) view external returns (address, uint256);
-
-    function defaultRoyaltyFraction() view external returns (uint96);
-}
-
-struct VerifyInfo {
-    uint256 _tokenId;
-    address _contract; 
-    uint256 _price;
-    address _creator; 
-    uint96 _royaltyFraction; 
-    address _seller;
-}
 
 contract LazyMintWith712 is EIP712, AccessControl {
     IAssetContractShared nftContract;
@@ -77,48 +40,56 @@ contract LazyMintWith712 is EIP712, AccessControl {
 
     // lazymint
     function mintNFT(
-        VerifyInfo memory vinfo,
+        uint256 _tokenId,
+        address _contract,
+        address _creator, 
+        uint96 _royaltyFraction, 
+        address _seller,
         address _to,
         uint256 _quantity,
         bytes memory _data,
         bytes calldata _signature
     ) payable public {
-        bytes32 digest = _hash(vinfo);
-        require(ECDSA.recover(digest, _signature) == vinfo._creator, "Invalid signature");
+        bytes32 digest = _hash(_tokenId, _contract, msg.value, _creator, _royaltyFraction, _seller);
+        require(ECDSA.recover(digest, _signature) == _creator, "Invalid signature");
 
-        nftContract.mint(_to, vinfo._tokenId, _quantity, _data, vinfo._royaltyFraction);
+        nftContract.mint(_to, _tokenId, _quantity, _data, _royaltyFraction);
         
          // pay for each other
         uint256 royaltyAmount = 0;
-        tokenTransfer(vinfo._creator, msg.value, royaltyAmount, address(0));
+        tokenTransfer(_creator, msg.value, royaltyAmount, address(0));
     }
 
     // safetransfer
     function transferNFT(
-        VerifyInfo memory vinfo,
+        uint256 _tokenId,
+        address _contract,
+        address _creator, 
+        uint96 _royaltyFraction, 
+        address _seller,
         address _to,
         uint256 _amount,
         bytes memory _data,
         bytes calldata _signature   
     ) payable public {
-        bytes32 digest = _hash(vinfo);
-        require(ECDSA.recover(digest, _signature) == vinfo._seller, "Invalid signature");
+        bytes32 digest = _hash(_tokenId, _contract, msg.value, _creator, _royaltyFraction, _seller);
+        require(ECDSA.recover(digest, _signature) == _seller, "Invalid signature");
 
-        nftContract.safeTransferFrom(vinfo._seller, _to, vinfo._tokenId, _amount, _data);
+        nftContract.safeTransferFrom(_seller, _to, _tokenId, _amount, _data);
         // pay for each other
-        (, uint256 royaltyAmount) = nftContract.royaltyInfo(vinfo._tokenId, msg.value);
-        tokenTransfer(vinfo._seller, msg.value, royaltyAmount, vinfo._creator);
+        (, uint256 royaltyAmount) = nftContract.royaltyInfo(_tokenId, msg.value);
+        tokenTransfer(_seller, msg.value, royaltyAmount, _creator);
     }
 
-    function _hash(VerifyInfo memory vinfo) internal view returns (bytes32) {
+    function _hash(uint256 _tokenId, address _contract, uint256 _price, address _creator, uint96 _royaltyFraction, address _seller) internal view returns (bytes32) {
         return _hashTypedDataV4(keccak256(abi.encode(
             keccak256("OpenVoice(uint256 tokenId,address contract,uint256 price,address creator,uint96 royaltyFraction,address seller)"),
-            vinfo._tokenId,
-            vinfo._contract,
-            vinfo._price,
-            vinfo._creator,
-            vinfo._royaltyFraction,
-            vinfo._seller
+            _tokenId,
+            _contract,
+            _price,
+            _creator,
+            _royaltyFraction,
+            _seller
         )));
     }
 }

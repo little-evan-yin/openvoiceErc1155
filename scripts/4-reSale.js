@@ -61,17 +61,9 @@ async function main() {
     // buy from the seller not the owner!
     const registry = (await attach('LazyMintWith712', process.env.REG_ADDRESS)).connect(buyer);
 
-    const buyerTypedValue = {
-        '_tokenId': tokenId,
-        '_contract': contractAddress,
-        '_price': 20000000,
-        '_creator': owner.address,
-        '_royaltyFraction': defaultRoyaltyFraction,
-        '_seller': seller.address
-    }
-
-    console.log(buyerTypedValue, signature)
-    const tx = await registry.transferNFT(buyerTypedValue, buyer.address, 1, '0x', signature);
+    const price = 20000000
+    // price 参数直接通过交易中的value传递
+    const tx = await registry.transferNFT(tokenId, contractAddress, owner.address, defaultRoyaltyFraction, seller.address, buyer.address, 1, '0x', signature, {value: price});
     const receipt = await tx.wait();
 
     console.log(receipt);
