@@ -2,7 +2,8 @@
 
 pragma solidity ^0.8.4;
 
-import { Initializable } from "./Initializable.sol";
+// import { Initializable } from "./Initializable.sol";
+import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 
 contract EIP712Base is Initializable {
     struct EIP712Domain {
@@ -25,7 +26,11 @@ contract EIP712Base is Initializable {
     // supposed to be called once while initializing.
     // one of the contracts that inherits this contract follows proxy pattern
     // so it is not possible to do this in a constructor
-    function _initializeEIP712(string memory name) internal initializer {
+    function _initializeEIP712(string memory name) internal onlyInitializing {
+        __EIP712_init_unchained(name);
+    }
+
+    function __EIP712_init_unchained(string memory name) internal onlyInitializing {
         _setDomainSeperator(name);
     }
 

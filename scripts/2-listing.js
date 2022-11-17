@@ -11,51 +11,54 @@ async function main() {
     console.log("NFT creator address: ", owner.address);
     console.log("Buyer address: ", buyer.address);  
 
+    // reg_address will be logic or proxy ??
     console.log("registry address: ", process.env.REG_ADDRESS);      // registry address 通过环境变量传入
     console.log("NFT contract address: ", process.env.NFT_ADDRESS);
 
     const { chainId } = await ethers.provider.getNetwork();
+    console.log("chainID: ", chainId)
 
-    const tokenId = '50930204793815341472647614845042490728161331526673935029629296842683499675658';
+    const tokenId = '25268102393833623659465216594422475168297195417170346890848025712765042639424';
     const contractAddress = process.env.NFT_ADDRESS;
     const nft = (await attach('AssetContractShared', contractAddress)).connect(owner);
 
     // mint
     // 流程：
     // 1. 上传metadata.json到ipfs，或其他数据存储平台（可使用moralis ipfs api 也可使用自己的后台接口）
-    const metadata = {
-        "name": "Quiero Pancakes",
-        "attributes": {
-            "birthday": "03-04",
-            "birth month": "March",
-            "zodiac sign": "Pisces"
-        },
-        "image": "https://birthstamps.herokuapp.com/images/4.png",
-        "description": "This is the tokens description"
-    }
+    // const metadata = {
+    //     "name": "Quiero Pancakes",
+    //     "attributes": {
+    //         "birthday": "03-04",
+    //         "birth month": "March",
+    //         "zodiac sign": "Pisces"
+    //     },
+    //     "image": "https://birthstamps.herokuapp.com/images/4.png",
+    //     "description": "This is the tokens description"
+    // }
 
-    const data = [{
-        path: "openvoice/0.json",
-        content: Buffer.from(JSON.stringify(metadata)).toString('base64')
-    }]
+    // const data = [{
+    //     path: "openvoice/0.json",
+    //     content: Buffer.from(JSON.stringify(metadata)).toString('base64')
+    // }]
     
-    const moralisUploadUrl = 'https://deep-index.moralis.io/api/v2/ipfs/uploadFolder'
-    const options = {
-        method: 'POST',
-        url: moralisUploadUrl,
-        data: data,
-        headers: {
-            accept: 'application/json',
-            'content-type': 'application/json',
-            'X-API-Key': 'test'     
-        }
-    }
+    // const moralisUploadUrl = 'https://deep-index.moralis.io/api/v2/ipfs/uploadFolder'
+    // const options = {
+    //     method: 'POST',
+    //     url: moralisUploadUrl,
+    //     data: data,
+    //     headers: {
+    //         accept: 'application/json',
+    //         'content-type': 'application/json',
+    //         'X-API-Key': 'test'     
+    //     }
+    // }
 
-    const res = await axios(options);
-    console.log(res.data);
+    // const res = await axios(options);
+    // console.log(res.data);
 
-    // 2. 绑定tokenID 和 tokenURI
-    const tokenURI = res.data[0].path;
+    // // 2. 绑定tokenID 和 tokenURI
+    // const tokenURI = res.data[0].path;
+    const tokenURI = "https://1"
     const tx = await nft.setURI(tokenId, tokenURI)
     const receipt = await tx.wait();
     console.log(receipt)
@@ -79,11 +82,11 @@ async function main() {
         verifyingContract: process.env.REG_ADDRESS
     }
     
-    const defaultRoyaltyFraction = 100;    // 1%
+    const defaultRoyaltyFraction = 10;    // 1%
     const typedValue = {
         'tokenId': tokenId,
         'contract': contractAddress,
-        'price': 10000000,
+        'price': '10260000000000000',
         'creator': owner.address,
         'royaltyFraction': defaultRoyaltyFraction,
         'seller': owner.address

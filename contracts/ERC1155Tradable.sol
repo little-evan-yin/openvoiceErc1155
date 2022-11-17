@@ -2,10 +2,11 @@
 
 pragma solidity ^0.8.4;
 
-import "@openzeppelin/contracts/access/Ownable.sol";
-import "@openzeppelin/contracts/token/ERC1155/ERC1155.sol";
-import "@openzeppelin/contracts/utils/Address.sol";
-import "@openzeppelin/contracts/security/Pausable.sol";
+import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/token/ERC1155/ERC1155Upgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/token/ERC1155/IERC1155ReceiverUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/utils/AddressUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/security/PausableUpgradeable.sol";
 
 import "./common/meta-transactions/ContentMixin.sol";
 import "./common/meta-transactions/NativeMetaTransaction.sol";
@@ -22,13 +23,14 @@ contract ProxyRegistry {
   like exists(), name(), symbol(), and totalSupply()
  */
 contract ERC1155Tradable is
+    Initializable,
     ContextMixin,
-    ERC1155,
+    ERC1155Upgradeable,
     NativeMetaTransaction,
-    Ownable,
-    Pausable
+    OwnableUpgradeable,
+    PausableUpgradeable
 {
-    using Address for address;
+    using AddressUpgradeable for address;
 
     // Contract name
     string public name;
@@ -42,11 +44,21 @@ contract ERC1155Tradable is
 
     address public proxyRegistryAddress;
 
-    constructor(
+    function __ERC1155Tradable_init(
         string memory _name,
         string memory _symbol,
         address _proxyRegistryAddress
-    ) ERC1155("") {
+    ) internal onlyInitializing {
+        __Ownable_init_unchained();
+        __ERC1155_init_unchained("");
+        __ERC1155Tradable_init_unchained(_name, _symbol, _proxyRegistryAddress);
+    }
+
+    function __ERC1155Tradable_init_unchained(
+        string memory _name,
+        string memory _symbol,
+        address _proxyRegistryAddress
+    ) internal onlyInitializing {
         name = _name;
         symbol = _symbol;
         proxyRegistryAddress = _proxyRegistryAddress;
@@ -320,7 +332,6 @@ contract ERC1155Tradable is
 
     // Overrides ERC1155 _mint to allow changing birth events to creator transfers,
     // and to set _supply
-    // mint 的时候没有设置uri，采用了默认uri规则，减少gas消耗
     function _mint(
         address _to,
         uint256 _id,
@@ -506,7 +517,7 @@ contract ERC1155Tradable is
     ) private {
         if (to.isContract()) {
             try
-                IERC1155Receiver(to).onERC1155Received(
+                IERC1155ReceiverUpgradeable(to).onERC1155Received(
                     operator,
                     from,
                     id,
@@ -515,7 +526,7 @@ contract ERC1155Tradable is
                 )
             returns (bytes4 response) {
                 if (
-                    response != IERC1155Receiver(to).onERC1155Received.selector
+                    response != IERC1155ReceiverUpgradeable(to).onERC1155Received.selector
                 ) {
                     revert("ERC1155: ERC1155Receiver rejected tokens");
                 }
@@ -539,7 +550,7 @@ contract ERC1155Tradable is
     ) internal {
         if (to.isContract()) {
             try
-                IERC1155Receiver(to).onERC1155BatchReceived(
+                IERC1155ReceiverUpgradeable(to).onERC1155BatchReceived(
                     operator,
                     from,
                     ids,
@@ -549,7 +560,7 @@ contract ERC1155Tradable is
             returns (bytes4 response) {
                 if (
                     response !=
-                    IERC1155Receiver(to).onERC1155BatchReceived.selector
+                    IERC1155ReceiverUpgradeable(to).onERC1155BatchReceived.selector
                 ) {
                     revert("ERC1155: ERC1155Receiver rejected tokens");
                 }

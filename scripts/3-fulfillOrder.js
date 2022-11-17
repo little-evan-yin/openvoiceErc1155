@@ -16,14 +16,14 @@ async function main() {
     console.log("signature: ", process.env.SIGNATURE);
 
     const registry = (await attach('LazyMintWith712', process.env.REG_ADDRESS)).connect(buyer);
-    const tokenId = '50930204793815341472647614845042490728161331526673935029629296842683499675658';
+    const tokenId = '25268102393833623659465216594422475168297195417170346890848025712765042639424';
     const contractAddress = process.env.NFT_ADDRESS;
     const nft = (await attach('AssetContractShared', contractAddress)).connect(buyer);
     const creator = await nft.creator(tokenId);
-    const defaultRoyaltyFraction = 100;
+    const defaultRoyaltyFraction = 10;
 
     // 2. 买家购买时，从数据库中获取签名数据，并组装好同样的datajson，向LazyMintWith712发起mint交易（验证签名）
-    const price = 10000000;
+    const price = '10260000000000000';
     // price 参数直接通过交易中的value传递
     const tx = await registry.mintNFT(tokenId, contractAddress, creator, defaultRoyaltyFraction, owner.address, buyer.address, 1, '0x', process.env.SIGNATURE, {value: price});
     const receipt = await tx.wait();

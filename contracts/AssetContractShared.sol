@@ -2,8 +2,8 @@
 
 pragma solidity ^0.8.4;
 
-import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
-import "@openzeppelin/contracts/token/common/ERC2981.sol";
+import "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/token/common/ERC2981Upgradeable.sol";
 import "./AssetContract.sol";
 import "./TokenIdentifiers.sol";
 
@@ -11,7 +11,17 @@ import "./TokenIdentifiers.sol";
  * @title AssetContractShared
  * OpenSea shared asset contract - A contract for easily creating custom assets on OpenSea
  */
-contract AssetContractShared is AssetContract, ReentrancyGuard, ERC2981 {
+contract AssetContractShared is AssetContract, ReentrancyGuardUpgradeable, ERC2981Upgradeable {
+    function initialize(
+        string memory _name,
+        string memory _symbol,
+        string memory _templateURI,
+        uint96 _royaltyFraction,
+        address _proxyRegistryAddress
+    ) public virtual initializer {
+        __AssetContractShared_init(_name, _symbol, _templateURI, _royaltyFraction, _proxyRegistryAddress);
+    }
+
     using TokenIdentifiers for uint256;
 
     event CreatorChanged(uint256 indexed _id, address indexed _creator);
@@ -42,27 +52,31 @@ contract AssetContractShared is AssetContract, ReentrancyGuard, ERC2981 {
         _;
     }
 
-    constructor(
+    function __AssetContractShared_init(
         string memory _name,
         string memory _symbol,
         string memory _templateURI,
         uint96 _royaltyFraction,
         address _proxyRegistryAddress
-    ) AssetContract(_name, _symbol, _templateURI, _proxyRegistryAddress) {
+    ) internal onlyInitializing {
+        __AssetContract_init(_name, _symbol, _templateURI, _proxyRegistryAddress);
         defaultRoyaltyFraction = _royaltyFraction;
     }
 
-    function supportsInterface(bytes4 interfaceId) public view virtual override(ERC1155, ERC2981) returns (bool) {
+    function supportsInterface(bytes4 interfaceId) public view virtual override(ERC1155Upgradeable, ERC2981Upgradeable) returns (bool) {
         return
-            interfaceId == type(IERC1155).interfaceId ||
-            interfaceId == type(IERC1155MetadataURI).interfaceId ||
-            interfaceId == type(IERC2981).interfaceId ||
+            interfaceId == type(IERC1155Upgradeable).interfaceId ||
+            interfaceId == type(IERC1155MetadataURIUpgradeable).interfaceId ||
+            interfaceId == type(IERC2981Upgradeable).interfaceId ||
             super.supportsInterface(interfaceId);
     }
 
+    function whosSender() public view returns(address) {
+        return _msgSender();
+    }
+
     /**
-     * mint限制了 creatorOnly， 从而只有该NFT的创建者或者通过opensea平台才能铸造！从而保证了交易！
-     * 需要指定_id，从而减少合约中维护id的字段！该id有特殊讲究，否则将无法解析！！
+     * mint: only owner or proxy address can call
      */
     function mint(
         address _to,
@@ -101,7 +115,6 @@ contract AssetContractShared is AssetContract, ReentrancyGuard, ERC2981 {
         defaultRoyaltyFraction = _royaltyFraction;
     }
 
-    // 如果合约通过可升级方式部署（proxy），则该地址可以固定，不需要再消耗gas去设置！
     function setProxyRegistryAddress(address _address) public onlyOwnerOrProxy {
         proxyRegistryAddress = _address;
     }

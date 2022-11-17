@@ -11,7 +11,7 @@ import "./ERC1155Tradable.sol";
 contract AssetContract is ERC1155Tradable {
     event PermanentURI(string _value, uint256 indexed _id);
 
-    uint256 constant TOKEN_SUPPLY_CAP = 1;   // ?? remainningSupply()函数被父函数覆盖了，所以这个值不起作用！这是个通用合约！不使用tokenidentifier.sol!
+    uint256 constant TOKEN_SUPPLY_CAP = 1;   
 
     string public templateURI;
 
@@ -44,12 +44,17 @@ contract AssetContract is ERC1155Tradable {
         _;
     }
 
-    constructor(
+    function __AssetContract_init(
         string memory _name,
         string memory _symbol,
         string memory _templateURI,
         address _proxyRegistryAddress
-    ) ERC1155Tradable(_name, _symbol, _proxyRegistryAddress) {
+    ) internal onlyInitializing {
+        __ERC1155Tradable_init(_name, _symbol, _proxyRegistryAddress);
+        __AssetContract_init_unchained(_templateURI);
+    }
+
+    function __AssetContract_init_unchained(string memory _templateURI) internal onlyInitializing {
         if (bytes(_templateURI).length > 0) {
             setTemplateURI(_templateURI);
         }
@@ -109,7 +114,6 @@ contract AssetContract is ERC1155Tradable {
         return templateURI;
     }
 
-    // 如果是NFT创作者，由于lazymint，需要加上remainingSupply
     function balanceOf(address _owner, uint256 _id)
         public
         view

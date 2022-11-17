@@ -1,20 +1,36 @@
 // SPDX-License-Identifier: MIT
 pragma solidity >=0.7.0 <0.9.0;
 
-import "@openzeppelin/contracts/access/AccessControl.sol";
-import "@openzeppelin/contracts/utils/cryptography/draft-EIP712.sol";
-import "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
+import "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/utils/cryptography/draft-EIP712Upgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/utils/cryptography/ECDSAUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "./IAssetContractShared.sol";
 
 
-contract LazyMintWith712 is EIP712, AccessControl {
-    IAssetContractShared nftContract;
+contract LazyMintWith712 is Initializable, EIP712Upgradeable, AccessControlUpgradeable {
+    function initialize(
+        string memory name, 
+        string memory version, 
+        address _nftAddress
+    ) public virtual initializer {
+        __LazyMintWith712_init(name, version, _nftAddress);
+    }
+
+    IAssetContractShared public nftContract;
     address platformAddress;
 
-    constructor(string memory name, address _nftAddress) EIP712(name, "1.0.0") {
+    // _nftAddress means the nft contract logic address (have to updated if changed !)
+    function __LazyMintWith712_init(string memory name, string memory version, address _nftAddress) internal onlyInitializing {
         _setupRole(DEFAULT_ADMIN_ROLE, _msgSender());
-        nftContract = IAssetContractShared(_nftAddress);
+        __EIP712_init_unchained(name, version);
+        __LazyMintWith712_init_unchained(_nftAddress);
     }
+
+    function __LazyMintWith712_init_unchained(address _nftAddress) public {
+        require(hasRole(DEFAULT_ADMIN_ROLE, _msgSender()));
+        nftContract = IAssetContractShared(_nftAddress);
+    } 
 
     function setPlatFormAddress(address _platformAddress) external {
         require(hasRole(DEFAULT_ADMIN_ROLE, _msgSender()));
@@ -51,7 +67,7 @@ contract LazyMintWith712 is EIP712, AccessControl {
         bytes calldata _signature
     ) payable public {
         bytes32 digest = _hash(_tokenId, _contract, msg.value, _creator, _royaltyFraction, _seller);
-        require(ECDSA.recover(digest, _signature) == _creator, "Invalid signature");
+        require(ECDSAUpgradeable.recover(digest, _signature) == _creator, "Invalid signature");
 
         nftContract.mint(_to, _tokenId, _quantity, _data, _royaltyFraction);
         
@@ -73,7 +89,7 @@ contract LazyMintWith712 is EIP712, AccessControl {
         bytes calldata _signature   
     ) payable public {
         bytes32 digest = _hash(_tokenId, _contract, msg.value, _creator, _royaltyFraction, _seller);
-        require(ECDSA.recover(digest, _signature) == _seller, "Invalid signature");
+        require(ECDSAUpgradeable.recover(digest, _signature) == _seller, "Invalid signature");
 
         nftContract.safeTransferFrom(_seller, _to, _tokenId, _amount, _data);
         // pay for each other

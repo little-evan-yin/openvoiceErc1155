@@ -6,11 +6,11 @@ async function attach(name, address) {
 }
 
 async function main() {
-    const [deployer, owner, seller, buyer] = await ethers.getSigners();
+    const [deployer, owner, buyer] = await ethers.getSigners();
     console.log("Deploying contracts with the account: ", deployer.address);
     console.log("NFT creator address: ", owner.address);
-    console.log("seller address: ", seller.address);  
-    console.log("buyer address: ", buyer.address);  
+    console.log("seller address: ", buyer.address);  
+    console.log("buyer address: ", owner.address);  
 
     console.log("registry address: ", process.env.REG_ADDRESS);   // registry address 通过环境变量传入
     console.log("NFT contract address: ", process.env.NFT_ADDRESS);
@@ -36,21 +36,21 @@ async function main() {
         verifyingContract: process.env.REG_ADDRESS
     }
 
-    const tokenId = '50930204793815341472647614845042490728161331526673935029629296842683499675658';
+    const tokenId = '25268102393833623659465216594422475168297195417170346890848025712765042639424';
     const contractAddress = process.env.NFT_ADDRESS;
-    const defaultRoyaltyFraction = 100;    // 1%
+    const defaultRoyaltyFraction = 10;    // 1%
     const typedValue = {
         'tokenId': tokenId,
         'contract': contractAddress,
-        'price': 20000000,
+        'price': '10260000000000000',
         'creator': owner.address,
         'royaltyFraction': defaultRoyaltyFraction,
-        'seller': seller.address
+        'seller': buyer.address
     }
 
     console.log(typedValue)
 
-    const signature = await seller._signTypedData(
+    const signature = await buyer._signTypedData(
         domain,
         orderTypes,
         typedValue
@@ -59,11 +59,11 @@ async function main() {
     console.log({ registry: process.env.REG_ADDRESS, signature });
 
     // buy from the seller not the owner!
-    const registry = (await attach('LazyMintWith712', process.env.REG_ADDRESS)).connect(buyer);
+    const registry = (await attach('LazyMintWith712', process.env.REG_ADDRESS)).connect(owner);
 
-    const price = 20000000
+    const price = '10260000000000000'
     // price 参数直接通过交易中的value传递
-    const tx = await registry.transferNFT(tokenId, contractAddress, owner.address, defaultRoyaltyFraction, seller.address, buyer.address, 1, '0x', signature, {value: price});
+    const tx = await registry.transferNFT(tokenId, contractAddress, owner.address, defaultRoyaltyFraction, buyer.address, owner.address, 1, '0x', signature, {value: price});
     const receipt = await tx.wait();
 
     console.log(receipt);
